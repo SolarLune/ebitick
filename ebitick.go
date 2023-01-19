@@ -46,6 +46,7 @@ type Timer struct {
 func (timer *Timer) Cancel() {
 	if timer.State != StateFinished {
 		timer.State = StateCanceled
+		timer.timerSystem.removeTimer(timer)
 	}
 }
 
@@ -114,16 +115,15 @@ func (ts *TimerSystem) After(duration time.Duration, onElapsed func()) *Timer {
 }
 
 // Update updates the TimerSystem and triggers any Timers that have elapsed. This should be called once
-// per frame in your game's update loop.
+// per frame in your game's update loop. Note that timers will no longer be accurate if Ebitengine's TPS is changed
+// while they are running.
 func (ts *TimerSystem) Update() {
 
-	timers := append([]*Timer{}, ts.Timers...)
+	timers := append(make([]*Timer, 0, len(ts.Timers)), ts.Timers...)
 
 	for _, timer := range timers {
 
-		if timer.State == StateCanceled {
-			ts.removeTimer(timer)
-		} else if timer.State == StatePaused {
+		if timer.State == StatePaused {
 			timer.StartTick++
 		} else if timer.State == StateRunning && ts.CurrentTime-timer.StartTick >= timer.Duration {
 
@@ -155,5 +155,18 @@ func (ts *TimerSystem) removeTimer(timer *Timer) {
 			ts.Timers = append(ts.Timers[:i], ts.Timers[i+1:]...)
 		}
 	}
+
+}
+
+// Clear cancels all Timers that belong to the TimerSystem and removes them from the TimerSystem. This is
+// safe to call from a Timer's elapsing function.
+func (ts *TimerSystem) Clear() {
+
+	for _, t := range ts.Timers {
+		if t.State != StateFinished {
+			t.State = StateCanceled
+		}
+	}
+	ts.Timers = []*Timer{}
 
 }

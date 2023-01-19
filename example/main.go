@@ -71,6 +71,12 @@ func (game *Game) Update() error {
 		fmt.Println("The timer has been canceled.")
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
+		game.TimerSystem.Clear()
+		game.spaceTimer = nil
+		fmt.Println("All timers canceled and removed from the TimerSystem.")
+	}
+
 	game.TimerSystem.Update()
 
 	return err
