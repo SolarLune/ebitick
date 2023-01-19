@@ -1,10 +1,14 @@
 # ebitick⏱️
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/solarlune/ebitick.svg)](https://pkg.go.dev/github.com/solarlune/ebitick)
+
 ebitick is a timer system for [Ebitengine](https://ebitengine.org/) games.
 
 ## Why?
 
 Because timing stuff is important and can be done in an easy to use, set-it-and-forget-it kinda way. You can just use `time.After()`, but that works on an additional goroutine, which can introduce race conditions into the mix. Ebitick, in comparison, works on the same goroutine as the rest of your game.
+
+❗ : Note that ebitick keeps time by counting ticks against the target tickrate (TPS), so it won't work properly if you change the tickrate _after_ starting timers.
 
 ## How?
 
