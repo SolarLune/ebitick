@@ -77,6 +77,7 @@ func (game *Game) Update() error {
 		fmt.Println("All timers canceled and removed from the TimerSystem.")
 	}
 
+	// Update the timer system by one tick every tick.
 	game.TimerSystem.Update()
 
 	return err

@@ -56,8 +56,8 @@ func NewGame() *Game {
 
 func (game *Game) Update() error {
 
-    // We have the TimerSystem update once per game tick, and that's it.
-    game.TimerSystem.Update()
+    // We have the TimerSystem update by one once per game tick, and that's it.
+    game.TimerSystem.Update(1)
 
     return nil
 

@@ -6,17 +6,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// TimeUnit represents one (1) game tick in an ebitengine game. For simplicity, a TimeUnit can be used as either a timestamp
-// (think time.Time{}, time.Now()), or a duration of time (think time.Duration{}, time.Since()) depending on the context with
-// which the value is used.
-type TimeUnit uint64
+// TimeUnit represents a game tick in an ebitengine game. For simplicity, a TimeUnit can be used as either a timestamp
+// (think time.Time{}, time.Now()), or a duration of time (time.Duration{}, time.Since()) depending on the context with
+// which the value is used. It is a float so that a TimerSystem can run at faster or slower speeds.
+type TimeUnit float32
 
 // ToDuration converts the timestamp to a generic time.Duration.
 func (ts TimeUnit) ToDuration() time.Duration {
 	return time.Duration(float64(ts) / float64(ebiten.TPS()) * float64(time.Second))
 }
 
-// ToTimeUnit converts the given number of seconds to a timeunit.
+// ToTimeUnit converts the given number of seconds to a timeunit using Ebiten's current TPS value.
 // Note that the granularity for conversion from seconds to a Timeunit is whole ticks, so fractions of a tick will be rounded down.
 // For example, if your game runs at 60 FPS / TPS, then a tick is 16.67 milliseconds. If you pass a duration of 20 milliseconds,
 // the timer will trigger after one tick. If you pass a duration of 16 milliseconds, the timer will trigger immediately.
@@ -64,21 +64,24 @@ func (timer *Timer) Resume() {
 	}
 }
 
-// TimeLeft returns a TimeUnit indicating how much time is left on the Timer.
+// TimeLeft returns a TimeUnit indicating how much -absolute- time is left on the Timer. This value is multiplied
+// by the owning system's current speed value.
 func (timer *Timer) TimeLeft() TimeUnit {
-	return (timer.Duration + timer.StartTick) - timer.timerSystem.CurrentTime
+	return ((timer.Duration + timer.StartTick) - timer.timerSystem.CurrentTime) / TimeUnit(timer.timerSystem.Speed)
 }
 
 // TimerSystem represents a system that updates and triggers timers added to the System.
 type TimerSystem struct {
 	Timers      []*Timer // The Timers presently existing in the System.
-	CurrentTime TimeUnit // The current tick of the TimerSystem. TimerSystem.Update() increments this by one each game tick.
+	CurrentTime TimeUnit // The current TimeUnit (tick) of the TimerSystem. TimerSystem.Update() increments this by TimerSystem.Speed each game tick.
+	Speed       float64  // Overall update speed of the system; changing this changes how fast the TimerSystem runs. Defaults to 1.
 }
 
 // NewTimerSystem creates a new TimerSystem instance.
 func NewTimerSystem() *TimerSystem {
 	return &TimerSystem{
 		Timers: []*Timer{},
+		Speed:  1,
 	}
 }
 
@@ -119,12 +122,13 @@ func (ts *TimerSystem) After(duration time.Duration, onElapsed func()) *Timer {
 // while they are running.
 func (ts *TimerSystem) Update() {
 
-	timers := append(make([]*Timer, 0, len(ts.Timers)), ts.Timers...)
+	// By looping in reverse, we can freely remove timers while iterating without missing any timers.
+	for i := len(ts.Timers) - 1; i >= 0; i-- {
 
-	for _, timer := range timers {
+		timer := ts.Timers[i]
 
 		if timer.State == StatePaused {
-			timer.StartTick++
+			timer.StartTick += TimeUnit(ts.Speed)
 		} else if timer.State == StateRunning && ts.CurrentTime-timer.StartTick >= timer.Duration {
 
 			timer.OnExecute()
@@ -142,7 +146,11 @@ func (ts *TimerSystem) Update() {
 
 	}
 
-	ts.CurrentTime++
+	if ts.Speed < 0 {
+		panic("error: speed can't be below 0")
+	}
+
+	ts.CurrentTime += TimeUnit(ts.Speed)
 
 }
 
