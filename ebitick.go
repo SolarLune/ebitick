@@ -16,10 +16,7 @@ func (ts TimeUnit) ToDuration() time.Duration {
 	return time.Duration(float64(ts) / float64(ebiten.TPS()) * float64(time.Second))
 }
 
-// ToTimeUnit converts the given number of seconds to a timeunit using Ebiten's current TPS value.
-// Note that the granularity for conversion from seconds to a Timeunit is whole ticks, so fractions of a tick will be rounded down.
-// For example, if your game runs at 60 FPS / TPS, then a tick is 16.67 milliseconds. If you pass a duration of 20 milliseconds,
-// the timer will trigger after one tick. If you pass a duration of 16 milliseconds, the timer will trigger immediately.
+// ToTimeUnit converts the given number of seconds to a TimeUnit using Ebiten's current TPS value.
 func ToTimeUnit(duration time.Duration) TimeUnit {
 	return TimeUnit(duration.Seconds() * float64(ebiten.TPS()))
 }
