@@ -33,7 +33,7 @@ const (
 type Timer struct {
 	timerSystem *TimerSystem
 	StartTick   TimeUnit // On what tick of the TimerSystem the Timer was initially started.
-	Duration    TimeUnit // How long the Timer should take.
+	duration    TimeUnit // How long the Timer should take.
 	OnExecute   func()   // What the timer does once it elapses.
 	Loop        bool     // If the Timer should loop after elapsing. Defaults to off.
 	State       int      // What state the Timer is in.
@@ -64,7 +64,15 @@ func (timer *Timer) Resume() {
 // TimeLeft returns a TimeUnit indicating how much -absolute- time is left on the Timer. This value is multiplied
 // by the owning system's current speed value.
 func (timer *Timer) TimeLeft() TimeUnit {
-	return ((timer.Duration + timer.StartTick) - timer.timerSystem.CurrentTime) / TimeUnit(timer.timerSystem.Speed)
+	return ((timer.duration + timer.StartTick) - timer.timerSystem.CurrentTime) / TimeUnit(timer.timerSystem.Speed)
+}
+
+func (timer *Timer) SetDuration(duration TimeUnit) {
+	timer.duration = duration
+}
+
+func (timer *Timer) Restart() {
+	timer.StartTick = timer.timerSystem.CurrentTime
 }
 
 // TimerSystem represents a system that updates and triggers timers added to the System.
@@ -93,7 +101,7 @@ func (ts *TimerSystem) AfterTicks(tickCount TimeUnit, onElapsed func()) *Timer {
 	newTimer := &Timer{
 		timerSystem: ts,
 		StartTick:   ts.CurrentTime,
-		Duration:    tickCount,
+		duration:    tickCount,
 		OnExecute:   onElapsed,
 	}
 
@@ -110,7 +118,7 @@ func (ts *TimerSystem) AfterTicks(tickCount TimeUnit, onElapsed func()) *Timer {
 // This will happen on whatever thread TimerSystem.Update() is called on (most probably the main thread).
 func (ts *TimerSystem) After(duration time.Duration, onElapsed func()) *Timer {
 	t := ts.AfterTicks(0, onElapsed)
-	t.Duration = ToTimeUnit(duration)
+	t.duration = ToTimeUnit(duration)
 	return t
 }
 
@@ -126,7 +134,7 @@ func (ts *TimerSystem) Update() {
 
 		if timer.State == StatePaused {
 			timer.StartTick += TimeUnit(ts.Speed)
-		} else if timer.State == StateRunning && ts.CurrentTime-timer.StartTick >= timer.Duration {
+		} else if timer.State == StateRunning && ts.CurrentTime-timer.StartTick >= timer.duration {
 
 			timer.OnExecute()
 
