@@ -1,6 +1,7 @@
 package ebitick
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -9,6 +10,7 @@ import (
 // TimeUnit represents a game tick in an ebitengine game. For simplicity, a TimeUnit can be used as either a timestamp
 // (think time.Time{}, time.Now()), or a duration of time (time.Duration{}, time.Since()) depending on the context with
 // which the value is used. It is a float so that a TimerSystem can run at faster or slower speeds.
+// By default, whenever the TimerSystem is updated, one TimeUnit has passed.
 type TimeUnit float32
 
 // ToDuration converts the timestamp to a generic time.Duration.
@@ -47,14 +49,14 @@ func (timer *Timer) Cancel() {
 	}
 }
 
-// Pause pauses the Timer. While paused, a Timer is not incrementing time. This does nothing on a Timer if it isn't running, specifically.
+// Pause pauses the Timer. While paused, a Timer is not incrementing time. This does nothing on a Timer if it isn't running.
 func (timer *Timer) Pause() {
 	if timer.State == StateRunning {
 		timer.State = StatePaused
 	}
 }
 
-// Resume resumes a paused Timer. This does nothing on a Timer if it isn't paused, specifically.
+// Resume resumes a paused Timer. This does nothing on a Timer if it isn't paused.
 func (timer *Timer) Resume() {
 	if timer.State == StatePaused {
 		timer.State = StateRunning
@@ -67,10 +69,17 @@ func (timer *Timer) TimeLeft() TimeUnit {
 	return ((timer.duration + timer.StartTick) - timer.timerSystem.CurrentTime) / TimeUnit(timer.timerSystem.Speed)
 }
 
+// SetDuration sets the duration of the Timer.
 func (timer *Timer) SetDuration(duration TimeUnit) {
 	timer.duration = duration
 }
 
+// SetDurationRandom sets the Timer's duration to be a random value between the minimum and maximum time unit values.
+func (timer *Timer) SetDurationRandom(min, max TimeUnit) {
+	timer.duration = min + (TimeUnit(rand.Float64()) * (max - min))
+}
+
+// Restart restarts the Timer.
 func (timer *Timer) Restart() {
 	timer.StartTick = timer.timerSystem.CurrentTime
 }
